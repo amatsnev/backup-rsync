@@ -3,7 +3,6 @@
 . /opt/backup/backup.cfg
 
 rsyncbackup() {
- 
 
  if [[ "$3" != "" ]] ; then BACKUP1=$3 ;fi
  MKDIRS $1
