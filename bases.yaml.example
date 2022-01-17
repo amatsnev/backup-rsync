@@ -1,0 +1,15 @@
+bases:
+  - name: volaris
+    ip: 10.27.0.1
+    backupdir: /backup
+  - name: tbs
+    ip: 10.27.0.33
+    description: tbs bases
+    backupdir: /backup
+
+  - name: sochi
+    ip: 10.0.30.127
+    backupdir: /backup
+
+default:
+    backupdir: /backupdefault
