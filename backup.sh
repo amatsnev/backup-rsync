@@ -1,33 +1,11 @@
 #!/bin/bash
 
-##. /home/vlad/scripts/func.inc
-
-. /home/vlad/scripts/backup/backup.cfg
-
-
-# get yq with $param1
-getyqv() {
-  yq e $1 $BASES
-}
-
-#get yq with name .bases[].name
-get_yq_v_byname() {
-  t=".bases[]|select(.name==\"$1\")|.$2"
-  q=$(getyqv $t)
-  if [[ $q == "null" ]] ; then q='' ;fi
-  echo $q
-}
+. /opt/backup/backup.cfg
 
 rsyncbackup() {
-
-# определяем для некоторых свой каталог бекапа
-# if [ -f $CONFIG_DIR/$1 ]; 
-#    then 
-#    BACKUP1=`cat $CONFIG_DIR/$1`
-#    else
-#    BACKUP1=$BACKUP
-# fi
- BACKUP1=$BACKUP
+ 
+ MKDIRS
+ if [[ "$3" == "" ]] ; then BACKUP1=$3 ;fi
 
  echo `date` $1 into dir $BACKUP1>>$LOGDIR/b-$1.log
  #echo `date` $BACKUP1 $LOGDIR/b-$1.log
