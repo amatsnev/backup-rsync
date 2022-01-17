@@ -4,14 +4,13 @@
 
 rsyncbackup() {
  
- MKDIRS
- if [[ "$3" == "" ]] ; then BACKUP1=$3 ;fi
 
+ if [[ "$3" != "" ]] ; then BACKUP1=$3 ;fi
+ MKDIRS $1
  echo `date` $1 into dir $BACKUP1>>$LOGDIR/b-$1.log
  #echo `date` $BACKUP1 $LOGDIR/b-$1.log
 
  # mkdir if not exist 
- [ ! -d $BACKUP1/$YEAR/$MONTH/$1 ] && mkdir -p $BACKUP1/$YEAR/$MONTH/$1
  echo `date` ---------------------------------------- >>$LOGDIR/b-$1.log
  #echo `date` starting backup from $1 >>$LOGDIR/b-$1.log
  
