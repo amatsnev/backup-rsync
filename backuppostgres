@@ -2,14 +2,18 @@
 
 source ./.env
 
+
 #Установка переменных
 log="/var/log/postgres_backup.log"
 error="./error"
+SERVERNAME=sochi
+PGVER=9.5
 BACKUPPATH=/backup/postgres
-PG_DUMP=/usr/lib/postgresql/9.6/bin/pg_dump
-PGSQL=/usr/lib/postgresql/9.6/bin/psql
+PG_DUMP=/usr/lib/postgresql/$PGVER/bin/pg_dump
+PGSQL=/usr/lib/postgresql/$PGVER/bin/psql
 RSYNC_BACKUP=/backup/rsync
 #VEGA_EXE_PATH=/backup_save/kvantoupdate/Vega
+
 
 #Шапка лога
 arname=`date +%Y-%m-%d_%H%M`
@@ -34,7 +38,7 @@ for bases in $BASES
     if [ -s $BACKUPPATH/${bases}_${arname}.backup ]
     then
         gpg --yes --recipient archiv --encrypt $BACKUPPATH/${bases}_${arname}.backup && rm -f $BACKUPPATH/${bases}_${arname}.backup
-        cp $BACKUPPATH/${bases}_${arname}.backup.gpg  $RSYNC_BACKUP/volaris-${bases}_${arname}.backup.gpg
+        cp $BACKUPPATH/${bases}_${arname}.backup.gpg  $RSYNC_BACKUP/$SERVERNAME-${bases}_${arname}.backup.gpg
         echo "${bases}_${arname}.backup.gpg" >> $log
     else
         rm -f $BACKUPPATH/${bases}_${arname}.backup
