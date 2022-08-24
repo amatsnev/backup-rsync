@@ -1,0 +1,65 @@
+#!/bin/bash
+
+source ./.env
+
+#Установка переменных
+log="/var/log/postgres_backup.log"
+error="./error"
+BACKUPPATH=/backup/postgres
+PG_DUMP=/usr/lib/postgresql/9.6/bin/pg_dump
+PGSQL=/usr/lib/postgresql/9.6/bin/psql
+RSYNC_BACKUP=/backup/rsync
+#VEGA_EXE_PATH=/backup_save/kvantoupdate/Vega
+
+#Шапка лога
+arname=`date +%Y-%m-%d_%H%M`
+echo  ---------------`date` --------------- >>$log
+echo  `date` Starting backup of POSTGRES bases >>$log
+
+#Собственно само действо
+# $PGSQL -h 127.0.0.1 -U postgres -w -c "select datname from pg_database where (datname NOT LIKE 'postgres' AND datname NOT LIKE 'template_') order by datname;" | tail -n +3 | head -n -2
+# Создаёт список всех баз постгреса за исключением (postgres, template0, template1), сортирует его, удаляя попутно шапку и хвостовик sql-запроса (2-е первые и последнюю строки).
+# Переменная bases в цикле проходит по этому списку, создавая .backup файлы. Если .backup файл создан успешно, то он криптуется и копируется в папку rsync для отправки на backup-сервер.
+# Стандартную консоль ошибок перенаправляем в файл error, который, при необходимости, выводим в лог.
+
+# BASES - базы которые изменялись
+BASES=`$PGSQL -h 127.0.0.1 -U postgres -w -c "select datname from pg_stat_database where  (tup_inserted+tup_updated+tup_deleted)>0 and (datname NOT LIKE 'postgres' AND datname NOT LIKE 'template_') order by datname;"| tail -n +3 | head -n -2 `
+#for bases in `$PGSQL -h 127.0.0.1 -U postgres -w -c "select datname from pg_database where (datname NOT LIKE 'postgres' AND datname NOT LIKE 'template_') order by datname;" | tail -n +3 | head -n -2`
+for bases in $BASES
+  do
+    echo -n "   ${bases}->" >> $log
+    $PG_DUMP -h 127.0.0.1 -p 5432 -U postgres -Fc -b -f $BACKUPPATH/${bases}_${arname}.backup $bases 2>$error
+    # reset pg_stat for this DB
+    $PGSQL -h 127.0.0.1 -U postgres -d ${bases} -c "select pg_stat_reset();"
+    if [ -s $BACKUPPATH/${bases}_${arname}.backup ]
+    then
+        gpg --yes --recipient archiv --encrypt $BACKUPPATH/${bases}_${arname}.backup && rm -f $BACKUPPATH/${bases}_${arname}.backup
+        cp $BACKUPPATH/${bases}_${arname}.backup.gpg  $RSYNC_BACKUP/volaris-${bases}_${arname}.backup.gpg
+        echo "${bases}_${arname}.backup.gpg" >> $log
+    else
+        rm -f $BACKUPPATH/${bases}_${arname}.backup
+        echo -n "ERROR:" >> $log
+        cat $error >> $log
+    fi
+    rm -f $error
+  done
+
+# Установка прав на папку RSYNC`a
+chmod -R ugo=rwX $RSYNC_BACKUP
+chown -R nobody:nogroup $RSYNC_BACKUP
+
+# Очистка папки с бекапами
+# -ctime - время изменения
+# +100 - старше 100 дней от текущего
+# -100 - последние 100 дней
+# 100 без знаков - ровно 100 дней (больше и меньше не входят)
+
+find $BACKUPPATH -ctime +14 -print | xargs /bin/rm -f
+
+#find $VEGA_EXE_PATH -name vega.exe -mtime +7 -print | xargs touch
+
+# Отправка почты
+#/bases/sizebases
+
+#Завершение лога
+echo  `date` End backup of POSTGRES bases >>$log
